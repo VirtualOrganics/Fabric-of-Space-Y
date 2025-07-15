@@ -1,6 +1,6 @@
-# Fabric-of-Space-X
+# Fabric of Space Y
 
-[Live Demo](https://virtualorganics.github.io/Fabric-of-Space-X/)
+[Live Demo](https://virtualorganics.github.io/Fabric-of-Space-Y/)
 
 An advanced 3D computational geometry visualization tool with **acuteness detection** capabilities, built upon the foundation of [Geogram-Three.js](https://github.com/VirtualOrganics/Geogram-Three.js). This project combines the computational power of [Geogram](https://github.com/BrunoLevy/geogram) with [Three.js](https://github.com/mrdoob/three.js) visualization and adds sophisticated geometric analysis features.
 
@@ -85,7 +85,7 @@ Revolutionary cell dynamics based on geometric properties:
 ## 🚀 Quick Start
 
 ### Online Demo
-Try it instantly: **[Live Demo](https://virtualorganics.github.io/Fabric-of-Space-X/)**
+Try it instantly: **[Live Demo](https://virtualorganics.github.io/Fabric-of-Space-Y/)**
 
 ### Local Development
 ```bash
