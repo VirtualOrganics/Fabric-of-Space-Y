@@ -134,7 +134,12 @@
                 <div class="control-row">
                     <div class="control-group">
                         <label>Periodic:</label>
-                        <input type="checkbox" id="periodicMode" checked>
+                        <input type="checkbox" id="periodicMode">
+                    </div>
+                    <div class="control-group">
+                        <label>Scale:</label>
+                        <input type="range" id="boundaryScale" min="40" max="100" step="5" value="80" style="width: 60px;">
+                        <span id="boundaryScaleValue" style="width: 40px; text-align: right;">80%</span>
                     </div>
                     <div class="control-group">
                         <label>Ghost Cells:</label>
@@ -570,20 +575,24 @@
         function generatePoissonPoints(targetCount, minDistance) {
             console.log(`Generating ~${targetCount} points with min distance ${minDistance}...`);
             
+            // Get boundary scale factor
+            const scale = parseFloat(document.getElementById('boundaryScale').value) / 100.0;
+            const offset = (1 - scale) / 2; // Center the scaled region
+            
             // For now, use a simpler approach that works better
             const points = [];
             const maxAttempts = targetCount * 100;
             let attempts = 0;
             
             // Add small margin to keep points away from boundaries
-            const margin = 0.01;
+            const margin = 0.01 * scale; // Scale the margin too
             
             while (points.length < targetCount && attempts < maxAttempts) {
                 attempts++;
                 const newPoint = [
-                    margin + Math.random() * (1 - 2 * margin),
-                    margin + Math.random() * (1 - 2 * margin),
-                    margin + Math.random() * (1 - 2 * margin)
+                    offset + margin + Math.random() * (scale - 2 * margin),
+                    offset + margin + Math.random() * (scale - 2 * margin),
+                    offset + margin + Math.random() * (scale - 2 * margin)
                 ];
                 
                 // Check minimum distance to existing points
@@ -604,7 +613,7 @@
                 }
             }
             
-            console.log(`Generated ${points.length} points with minimum distance checking`);
+            console.log(`Generated ${points.length} points with minimum distance checking, scale=${scale}`);
             
             // If we couldn't generate enough points, warn the user
             if (points.length < targetCount * 0.8) {
@@ -617,13 +626,21 @@
         
         // Legacy function for comparison (keeping for now)
         function generateWellDistributedPoints(count, minDist) {
+            // Get boundary scale factor
+            const scale = parseFloat(document.getElementById('boundaryScale').value) / 100.0;
+            const offset = (1 - scale) / 2; // Center the scaled region
+            
             const points = [];
             let attempts = 0;
             const maxAttempts = count * 1000;
             
             while (points.length < count && attempts < maxAttempts) {
                 attempts++;
-                const newPoint = [Math.random(), Math.random(), Math.random()];
+                const newPoint = [
+                    offset + Math.random() * scale,
+                    offset + Math.random() * scale,
+                    offset + Math.random() * scale
+                ];
                 
                 // Check distance to existing points
                 let tooClose = false;
@@ -643,6 +660,7 @@
                 }
             }
             
+            console.log(`Generated ${points.length} points with scale=${scale}`);
             return points;
         }
         
@@ -1996,6 +2014,16 @@
             
             document.getElementById('periodicMode').addEventListener('change', () => {
                 computeDelaunayVoronoi();
+            });
+            
+            // Boundary scale control
+            document.getElementById('boundaryScale').addEventListener('input', (e) => {
+                document.getElementById('boundaryScaleValue').textContent = e.target.value + '%';
+            });
+            
+            document.getElementById('boundaryScale').addEventListener('change', () => {
+                // Regenerate points with new scale when slider is released
+                regenerateButton.click();
             });
             
             // Growth System Controls

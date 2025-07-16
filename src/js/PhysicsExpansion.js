@@ -10,7 +10,7 @@ export class PhysicsExpansion {
         // Physics parameters
         this.forceStrength = 0.5;
         this.damping = 0.8;
-        this.maxForce = 0.1;
+        this.maxForce = 0.5;  // Increased from 0.1 for stronger forces
         this.minDistance = 0.01;
         
         // State tracking
