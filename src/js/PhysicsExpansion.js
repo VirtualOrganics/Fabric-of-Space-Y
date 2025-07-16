@@ -152,11 +152,12 @@ export class PhysicsExpansion {
         
         // Calculate force magnitude
         // Force is stronger when cells are closer (inverse square law)
-        // and proportional to growth rate
+        // Positive growth rate = push away (positive force along direction)
+        // Negative growth rate = pull together (negative force along direction)
         const forceMagnitude = (growthRate * this.forceStrength) / (distance * distance);
         
-        // Clamp force magnitude
-        const clampedMagnitude = Math.min(Math.abs(forceMagnitude), this.maxForce) * Math.sign(forceMagnitude);
+        // Clamp force magnitude while preserving sign
+        const clampedMagnitude = Math.sign(forceMagnitude) * Math.min(Math.abs(forceMagnitude), this.maxForce);
         
         return {
             x: nx * clampedMagnitude,
@@ -195,33 +196,64 @@ export class PhysicsExpansion {
             this.forces.set(index, { x: 0, y: 0, z: 0 });
         });
         
-        // Calculate forces between growing cells and their neighbors
-        this.growthRates.forEach((growthRate, growingCellIndex) => {
-            if (Math.abs(growthRate) < 0.001) return; // Skip negligible growth
+        // Calculate forces between ALL cells with growth rates
+        // This ensures proper push-pull dynamics
+        const cellsWithGrowth = Array.from(this.growthRates.keys());
+        
+        // Process each pair of cells only once
+        for (let i = 0; i < cellsWithGrowth.length; i++) {
+            const cellIndexA = cellsWithGrowth[i];
+            const growthRateA = this.growthRates.get(cellIndexA);
+            if (Math.abs(growthRateA) < 0.001) continue;
             
-            const growingPoint = generatorPoints[growingCellIndex];
-            const neighbors = this.findCellNeighbors(growingCellIndex, voronoiCells);
+            const pointA = generatorPoints[cellIndexA];
+            const neighborsA = this.findCellNeighbors(cellIndexA, voronoiCells);
             
-            // Apply force to each neighbor
-            neighbors.forEach(neighborIndex => {
-                const neighborPoint = generatorPoints[neighborIndex];
+            neighborsA.forEach(cellIndexB => {
+                // Check if neighbor also has a growth rate
+                const growthRateB = this.growthRates.get(cellIndexB) || 0;
                 
-                // Calculate force from growing cell to neighbor
-                const force = this.calculateForce(growingPoint, neighborPoint, growthRate);
+                const pointB = generatorPoints[cellIndexB];
                 
-                // Apply force to neighbor (pushed away if growing, pulled in if shrinking)
-                const neighborForce = this.forces.get(neighborIndex);
-                neighborForce.x += force.x;
-                neighborForce.y += force.y;
-                neighborForce.z += force.z;
+                // Calculate base force from A to B
+                const forceAtoB = this.calculateForce(pointA, pointB, growthRateA);
                 
-                // Apply equal and opposite force to growing cell (Newton's third law)
-                const growingForce = this.forces.get(growingCellIndex);
-                growingForce.x -= force.x * 0.5; // Reduced to make growing cell more stable
-                growingForce.y -= force.y * 0.5;
-                growingForce.z -= force.z * 0.5;
+                // If B also has growth, calculate its force contribution
+                let forceBtoA = { x: 0, y: 0, z: 0 };
+                if (Math.abs(growthRateB) > 0.001) {
+                    forceBtoA = this.calculateForce(pointB, pointA, growthRateB);
+                }
+                
+                // Apply forces with proper amplification
+                // Growing cells (positive rate) push away from each other
+                // Shrinking cells (negative rate) pull towards each other
+                
+                // Force on B from A
+                const forceB = this.forces.get(cellIndexB);
+                forceB.x += forceAtoB.x;
+                forceB.y += forceAtoB.y;
+                forceB.z += forceAtoB.z;
+                
+                // Force on A from B (Newton's third law - equal and opposite)
+                const forceA = this.forces.get(cellIndexA);
+                forceA.x -= forceAtoB.x;
+                forceA.y -= forceAtoB.y;
+                forceA.z -= forceAtoB.z;
+                
+                // If B is also active, add its contribution
+                if (Math.abs(growthRateB) > 0.001) {
+                    // B's force on A
+                    forceA.x += forceBtoA.x;
+                    forceA.y += forceBtoA.y;
+                    forceA.z += forceBtoA.z;
+                    
+                    // A's reaction to B's force
+                    forceB.x -= forceBtoA.x;
+                    forceB.y -= forceBtoA.y;
+                    forceB.z -= forceBtoA.z;
+                }
             });
-        });
+        }
         
         // Update velocities and positions
         const updatedPoints = [];

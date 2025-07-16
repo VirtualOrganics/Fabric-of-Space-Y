@@ -27,16 +27,16 @@ export class PhysicsGrowthSystem {
             growthPower: config.growthPower || 1.5,
             // Whether to normalize growth rates
             normalize: config.normalize !== undefined ? config.normalize : true,
-            // Base growth rate multiplier
-            baseGrowthRate: config.baseGrowthRate || 3.0,
+            // Base growth rate multiplier (increased for more visible effect)
+            baseGrowthRate: config.baseGrowthRate || 5.0,
             
-            // Physics parameters
-            forceStrength: config.forceStrength || 2.0,
-            damping: config.damping || 0.8,
-            maxForce: config.maxForce || 0.1,
+            // Physics parameters (increased for stronger push-pull)
+            forceStrength: config.forceStrength || 5.0,
+            damping: config.damping || 0.85,
+            maxForce: config.maxForce || 0.2,
             
             // Equilibrium detection
-            equilibriumPrecision: config.equilibriumPrecision || 0.001,
+            equilibriumPrecision: config.equilibriumPrecision || 0.0005,
             maxPhysicsSteps: config.maxPhysicsSteps || 100,
             
             // Step mode: 'manual', 'auto', 'equilibrium', 'continuous'
