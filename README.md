@@ -2,7 +2,7 @@
 
 [Live Demo](https://virtualorganics.github.io/Fabric-of-Space-Y/)
 
-An advanced 3D computational geometry visualization tool with **acuteness detection** capabilities, built upon the foundation of [Geogram-Three.js](https://github.com/VirtualOrganics/Geogram-Three.js). This project combines the computational power of [Geogram](https://github.com/BrunoLevy/geogram) with [Three.js](https://github.com/mrdoob/three.js) visualization and adds sophisticated geometric analysis features.
+An advanced 3D computational geometry visualization tool with **physics-based cell dynamics**, built upon the foundation of [Geogram-Three.js](https://github.com/VirtualOrganics/Geogram-Three.js). This project combines computational geometry, acuteness detection, and realistic physics simulation for dynamic cell expansion/contraction.
 
 <p align="center">
   <img src="docs/Fabric_of_Space_7.png" alt="Fabric-of-Space Demo" width="35%">
@@ -25,20 +25,29 @@ An advanced 3D computational geometry visualization tool with **acuteness detect
 - **Periodic Boundary Conditions**: Support for periodic (toroidal) domains
 - **WebAssembly Performance**: Native-speed computation in the browser
 - **Interactive 3D Visualization**: Real-time Three.js rendering with orbit controls
-- **Growth-Shrink Dynamics**: Cells grow or shrink based on their acuteness (NEW in X version!)
 
-### **🔍 Acuteness Detection System** *(New!)*
+### **🚀 Physics-Based Growth System** *(New in Y!)*
+Revolutionary physics engine that creates realistic cell expansion/contraction:
+
+- **Push-Pull Dynamics**: Growing cells push neighbors, shrinking cells pull
+- **Force Amplification**: When growing meets shrinking cells, forces combine
+- **Continuous Mode**: Cells continuously grow/shrink with real-time analysis
+- **Physics Steps Control**: Run multiple physics steps between analyses
+- **Boundary Scale**: Adjustable object scale (40-100%) to prevent boundary errors
+- **Vibrant Color Gradient**: Deep Blue → Cyan → Green → Yellow → Orange → Red
+
+### **🔍 Acuteness Detection System**
 Advanced geometric analysis tools that detect and visualize acute angles in 3D structures:
 
 - **📐 Cell Acuteness**: Analyzes dihedral angles between adjacent faces in Voronoi cells
 - **🔲 Face Acuteness**: Counts acute interior angles in Voronoi face polygons  
 - **⚫ Vertex Acuteness**: Measures acute angles in Delaunay tetrahedra vertices
-- **🎨 Color-Coded Visualization**: Blue-to-red gradient (blue = low acuteness, red = high acuteness)
-- **📊 Interactive Legend**: Real-time color scale showing acuteness levels
+- **🎨 Color-Coded Visualization**: Vibrant spectrum gradient for better contrast
+- **📊 Interactive Legend**: Real-time color scale with cell counts
 - **🧪 Unit Testing**: Comprehensive test suite with geometric validation
 - **⚡ Performance Optimized**: Handles 1000+ points with live updates at 30+ FPS
 
-### **⚡ Performance Optimizations** *(New!)*
+### **⚡ Performance Optimizations**
 Sophisticated optimization system for handling large datasets:
 
 - **FastAcuteness Engine**: Optimized analyzer for 500+ points
@@ -90,8 +99,8 @@ Try it instantly: **[Live Demo](https://virtualorganics.github.io/Fabric-of-Spac
 ### Local Development
 ```bash
 # Clone the repository
-git clone https://github.com/VirtualOrganics/Fabric-of-Space-X.git
-cd Fabric-of-Space-X
+git clone https://github.com/VirtualOrganics/Fabric-of-Space-Y.git
+cd Fabric-of-Space-Y
 
 # Start local server
 python3 -m http.server 8000
@@ -105,21 +114,39 @@ open http://localhost:8000
 ### Basic Controls
 - **Points**: Number of random points to generate (4-2500)
 - **Min Dist**: Minimum distance between generated points
-- **Motion/Speed**: Point animation settings
-- **Live Update**: Real-time triangulation updates
+- **Scale**: Boundary scale (40-100%) to prevent outlier errors
 - **Periodic**: Toggle periodic boundary conditions
 - **Ghost Cells**: Visualize periodic space wrapping
 
+### 🚀 Physics Growth Controls
+- **Enable**: Turn on physics-based growth system
+- **Growth Mode**: How cells respond to acuteness
+  - `+ Acute = + / - Acute = -`: High acuteness grows, low shrinks (recommended)
+  - `+ Acute = + (only)`: Only high acuteness cells grow
+  - `+ Acute = - (only)`: Only high acuteness cells shrink
+  - `+ Acute = - / - Acute = +`: Inverse behavior
+- **Threshold**: Acuteness threshold for growth/shrink decision
+- **Rate**: Base growth rate multiplier
+- **Force Str**: Physics force strength (higher = stronger push/pull)
+- **Phys/Anal**: Physics steps between acuteness recalculations
+- **Step Mode**: 
+  - **Manual**: Step-by-step execution
+  - **Auto**: Automatic stepping
+  - **Equilibrium**: Run until stable
+  - **Continuous**: Real-time continuous growth/shrink
+
 ### 🔍 Acuteness Detection Controls
-1. **Vertices Checkbox**: Toggle vertex acuteness visualization
-2. **Analysis Mode Dropdown**: 
-   - **None**: Standard visualization without analysis
-   - **Faces**: Color individual Voronoi faces by their acute angles
-   - **Cells**: Color entire Voronoi cells by total acute angles (default)
-3. **Opacity Slider**: Control transparency of face/cell coloring
-4. **Thickness Slider**: Control size of vertex spheres
-5. **Run Unit Tests**: Execute geometric validation tests
-6. **Recompute Analysis**: Refresh analysis on current data
+- **Analysis Mode**: None, Faces, Cells (default)
+- **Vertices/Edges/Faces**: Toggle visualizations
+- **Color Legend**: Interactive with opacity controls
+- **Cell Counts**: Real-time display of cells in each range
+
+### Recommended Settings for Physics
+1. Set **Scale** to 60-70% for non-periodic mode
+2. Set **Threshold** to median acuteness value
+3. Set **Growth Mode** to `+ Acute = + / - Acute = -`
+4. Set **Phys/Anal** to 10-20 for visible changes
+5. Select **Continuous** mode and click **Start**
 
 ### Color Legend
 - **🔵 Blue**: Low acuteness (few acute angles)
