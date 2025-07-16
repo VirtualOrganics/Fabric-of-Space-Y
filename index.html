@@ -110,6 +110,31 @@
         }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
+        
+        /* Performance monitoring styles */
+        .performance-stats {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            color: #666;
+        }
+        
+        .stat-value {
+            font-family: monospace;
+            color: #333;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -399,7 +424,7 @@
                         </select>
                     </div>
                     <div class="control-group">
-                        <button id="manualStep" style="display: block;">Step</button>
+                        <button id="manualStep" style="width: 100px;">Manual Step</button>
                     </div>
                 </div>
                 <div class="control-row">
@@ -419,6 +444,45 @@
                 <div class="control-row">
                     <div class="control-group" style="width: 100%;">
                         <span id="physicsStats" style="font-size: 10px; color: #888;">Physics: 0 steps | Equilibrium: No</span>
+                    </div>
+                </div>
+
+                <!-- Performance Monitoring -->
+                <div class="section-header">Performance Monitor</div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Show Stats:</label>
+                        <input type="checkbox" id="showPerformanceStats">
+                    </div>
+                </div>
+                <div id="performanceStats" class="performance-stats" style="display: none;">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Time:</span>
+                        <span class="stat-value" id="perfTotalTime">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Acuteness:</span>
+                        <span class="stat-value" id="perfAcutenessTime">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Physics:</span>
+                        <span class="stat-value" id="perfPhysicsTime">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Voronoi:</span>
+                        <span class="stat-value" id="perfVoronoiTime">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Active Cells:</span>
+                        <span class="stat-value" id="perfActiveCells">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Avg Neighbors:</span>
+                        <span class="stat-value" id="perfAvgNeighbors">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">FPS:</span>
+                        <span class="stat-value" id="perfFPS">-</span>
                     </div>
                 </div>
 
@@ -473,6 +537,10 @@
         let velocities = [];
         let frameCount = 0;
         let growthEnabled = false;
+        
+        // Performance monitoring variables
+        let lastFPSUpdate = performance.now();
+        let currentFPS = 0;
         
         // ACUTENESS ANALYSIS: Global variables for analysis results
         let analysisResults = null;
@@ -1867,6 +1935,19 @@
             requestAnimationFrame(animate);
             frameCount++;
             
+            // Update FPS counter
+            const now = performance.now();
+            if (now - lastFPSUpdate >= 1000) {
+                currentFPS = frameCount * 1000 / (now - lastFPSUpdate);
+                frameCount = 0;
+                lastFPSUpdate = now;
+                
+                // Update performance stats if visible
+                if (document.getElementById('showPerformanceStats').checked) {
+                    updatePerformanceStats();
+                }
+            }
+            
             // Apply growth if enabled
             if (growthEnabled && computation && analysisResults) {
                 // Apply physics-based growth
@@ -2221,6 +2302,9 @@
                             document.getElementById('physicsStats').textContent = 
                                 `Physics: ${stats.physicsSteps} steps | Equilibrium: ${stats.equilibriumReached ? 'Yes' : 'No'}`;
                             
+                            // Update performance stats
+                            updatePerformanceStats();
+                            
                             // Call completion callback
                             if (onComplete) onComplete();
                         };
@@ -2242,8 +2326,38 @@
                     
                     // Recompute visualization
                     computeDelaunayVoronoi();
+                    
+                    // Update performance stats
+                    updatePerformanceStats();
                 }
             });
+            
+            document.getElementById('showPerformanceStats').addEventListener('change', (e) => {
+                document.getElementById('performanceStats').style.display = e.target.checked ? 'block' : 'none';
+            });
+            
+            function updatePerformanceStats() {
+                if (!physicsGrowthSystem || !document.getElementById('showPerformanceStats').checked) {
+                    return;
+                }
+                
+                const stats = physicsGrowthSystem.getPerformanceStats();
+                
+                // Update timing stats
+                document.getElementById('perfTotalTime').textContent = stats.totalTime.toFixed(2) + 'ms';
+                document.getElementById('perfAcutenessTime').textContent = stats.acutenessTime.toFixed(2) + 'ms';
+                document.getElementById('perfPhysicsTime').textContent = stats.physicsTime.toFixed(2) + 'ms';
+                document.getElementById('perfVoronoiTime').textContent = stats.voronoiTime.toFixed(2) + 'ms';
+                
+                // Update physics debug info
+                if (stats.physicsDebug) {
+                    document.getElementById('perfActiveCells').textContent = stats.physicsDebug.activeCount;
+                    document.getElementById('perfAvgNeighbors').textContent = stats.physicsDebug.averageNeighborsPerCell.toFixed(1);
+                }
+                
+                // Update FPS
+                document.getElementById('perfFPS').textContent = currentFPS.toFixed(1);
+            }
             
             document.getElementById('growthNormalize').addEventListener('change', (e) => {
                 if (physicsGrowthSystem) {

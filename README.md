@@ -48,6 +48,11 @@ Advanced geometric analysis tools that detect and visualize acute angles in 3D s
 - **⚡ Performance Optimized**: Handles 1000+ points with live updates at 30+ FPS
 
 ### **⚡ Performance Optimizations**
+- **Optimized Physics Engine**: 3-5x faster with typed arrays and vertex hashing
+- **Neighbor Detection**: O(n) complexity using spatial hashing (was O(n²))
+- **Force Calculations**: In-place calculations with reduced allocations
+- **Voronoi Caching**: Reuses cell data during physics iterations
+- **Performance Monitor**: Real-time stats for debugging and optimization
 Sophisticated optimization system for handling large datasets:
 
 - **FastAcuteness Engine**: Optimized analyzer for 500+ points

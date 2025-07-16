@@ -1,19 +1,17 @@
 /**
  * PhysicsGrowthSystem.js
  * 
- * A physics-based growth system that combines acuteness analysis with realistic
- * cell expansion through neighbor force interactions.
- * 
- * Step-wise process:
- * a. Stop all motion (reset velocities/forces)
- * b. Calculate acuteness for all cells
- * c. Calculate growth strength based on acuteness vs threshold
- * d. Send growth signals to physics engine
- * e. Balance forces between cells until equilibrium
- * f. Loop back to step a
+ * A growth system that combines acuteness analysis with physics-based cell expansion.
+ * This implements the step-wise process:
+ * 1. Stop all motion
+ * 2. Calculate acuteness for each cell
+ * 3. Calculate growth strength based on acuteness vs threshold
+ * 4. Send growth signals to physics engine
+ * 5. Balance forces between cells until equilibrium
+ * 6. Loop back to step 1
  */
 
-import { PhysicsExpansion } from './PhysicsExpansion.js';
+import { OptimizedPhysicsExpansion } from './OptimizedPhysicsExpansion.js';
 
 export class PhysicsGrowthSystem {
     constructor(config = {}) {
@@ -47,7 +45,7 @@ export class PhysicsGrowthSystem {
         };
         
         // Initialize physics engine
-        this.physicsEngine = new PhysicsExpansion();
+        this.physicsEngine = new OptimizedPhysicsExpansion();
         this.physicsEngine.forceStrength = this.config.forceStrength;
         this.physicsEngine.damping = this.config.damping;
         this.physicsEngine.maxForce = this.config.maxForce;
@@ -68,6 +66,18 @@ export class PhysicsGrowthSystem {
             physicsSteps: 0,
             equilibriumReached: false
         };
+        
+        // Cache for Voronoi cells to avoid rebuilding
+        this.voronoiCellsCache = null;
+        this.voronoiCacheValid = false;
+        
+        // Performance monitoring
+        this.performanceStats = {
+            acutenessTime: 0,
+            physicsTime: 0,
+            voronoiTime: 0,
+            totalTime: 0
+        };
     }
     
     /**
@@ -86,7 +96,7 @@ export class PhysicsGrowthSystem {
         // Step b: Calculate acuteness (already done in analysisResults)
         const cellScores = analysisResults.cellScores;
         
-        // Step c: Calculate growth strength for each cell
+        // Step c: Calculate growth strength based on acuteness vs threshold
         const growthSignals = this.calculateGrowthSignals(cellScores);
         
         // Step d: Send growth signals to physics engine
@@ -208,8 +218,19 @@ export class PhysicsGrowthSystem {
      * Step e: Balance forces between cells until equilibrium
      */
     balanceForces(points, computation) {
-        // Build Voronoi cells from computation
-        const cells = this.buildVoronoiCells(points, computation);
+        const startTime = performance.now();
+        
+        // Build Voronoi cells from computation (use cache if valid)
+        let cells;
+        if (this.voronoiCacheValid && this.voronoiCellsCache) {
+            cells = this.voronoiCellsCache;
+        } else {
+            const voronoiStart = performance.now();
+            cells = this.buildVoronoiCells(points, computation);
+            this.voronoiCellsCache = cells;
+            this.voronoiCacheValid = true;
+            this.performanceStats.voronoiTime = performance.now() - voronoiStart;
+        }
         
         let currentPoints = points.map(p => [...p]); // Deep copy
         let physicsSteps = 0;
@@ -236,6 +257,8 @@ export class PhysicsGrowthSystem {
                 break;
             }
         }
+        
+        this.performanceStats.physicsTime = performance.now() - startTime;
         
         return {
             updatedPoints: currentPoints,
@@ -312,6 +335,7 @@ export class PhysicsGrowthSystem {
             physicsSteps: 0,
             equilibriumReached: false
         };
+        this.voronoiCacheValid = false;
     }
     
     /**
@@ -485,5 +509,50 @@ export class PhysicsGrowthSystem {
      */
     isContinuousMode() {
         return this.continuousMode;
+    }
+
+    /**
+     * Execute one complete growth step
+     */
+    executeStep(points, computation) {
+        const stepStartTime = performance.now();
+        
+        // Step a: Stop all motion (handled by physics engine reset)
+        // Step b: Calculate acuteness for all cells
+        const acutenessStart = performance.now();
+        const acutenessScores = this.calculateAcuteness(points, computation);
+        this.performanceStats.acutenessTime = performance.now() - acutenessStart;
+        
+        // Step c: Calculate growth strength based on acuteness vs threshold
+        const growthSignals = this.calculateGrowthSignals(acutenessScores);
+        
+        // Step d: Send growth signals to physics engine
+        this.applyGrowthSignals(growthSignals);
+        
+        // Step e: Balance forces between cells until equilibrium
+        const result = this.balanceForces(points, computation);
+        
+        // Update statistics
+        this.stats.lastMaxDisplacement = result.maxDisplacement;
+        this.stats.lastPhysicsSteps = result.physicsSteps;
+        this.stats.equilibriumReached = result.equilibriumReached;
+        this.stepCount++;
+        
+        // Invalidate Voronoi cache since points have moved
+        this.voronoiCacheValid = false;
+        
+        this.performanceStats.totalTime = performance.now() - stepStartTime;
+        
+        return result.updatedPoints;
+    }
+
+    /**
+     * Get performance statistics
+     */
+    getPerformanceStats() {
+        return {
+            ...this.performanceStats,
+            physicsDebug: this.physicsEngine.getDebugInfo()
+        };
     }
 } 
