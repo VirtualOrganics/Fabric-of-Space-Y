@@ -40,7 +40,10 @@ export class PhysicsGrowthSystem {
             maxPhysicsSteps: config.maxPhysicsSteps || 100,
             
             // Step mode: 'manual', 'auto', 'equilibrium', 'continuous'
-            stepMode: config.stepMode || 'manual'
+            stepMode: config.stepMode || 'manual',
+            
+            // Physics steps between analysis updates (for continuous mode)
+            physicsStepsPerAnalysis: config.physicsStepsPerAnalysis || 10
         };
         
         // Initialize physics engine
@@ -54,6 +57,8 @@ export class PhysicsGrowthSystem {
         this.currentStep = 0;
         this.continuousMode = false;
         this.continuousIntervalId = null;
+        this.physicsStepCounter = 0; // Track physics steps in continuous mode
+        this.currentGrowthSignals = null; // Store growth signals between analyses
         this.stats = {
             totalDisplacement: 0,
             maxDisplacement: 0,
@@ -296,6 +301,8 @@ export class PhysicsGrowthSystem {
     reset() {
         this.physicsEngine.reset();
         this.currentStep = 0;
+        this.physicsStepCounter = 0;
+        this.currentGrowthSignals = null;
         this.stats = {
             totalDisplacement: 0,
             maxDisplacement: 0,
@@ -381,6 +388,8 @@ export class PhysicsGrowthSystem {
             this.continuousIntervalId = null;
         }
         this.continuousMode = false;
+        this.physicsStepCounter = 0;
+        this.currentGrowthSignals = null;
         console.log('Stopped continuous growth mode');
     }
     
@@ -391,16 +400,35 @@ export class PhysicsGrowthSystem {
         if (!this.continuousMode) return;
         
         try {
-            // Perform analysis to get current cell scores
-            if (this.continuousCallback) {
-                // Let the main app handle the analysis and get results
-                this.continuousCallback(() => {
-                    // This will be called after analysis is complete
+            // Check if we need to recalculate acuteness
+            if (this.physicsStepCounter === 0 || !this.currentGrowthSignals) {
+                // Time to recalculate acuteness and growth signals
+                console.log(`Recalculating acuteness after ${this.config.physicsStepsPerAnalysis} physics steps`);
+                
+                if (this.continuousCallback) {
+                    // Let the main app handle the analysis and get results
+                    this.continuousCallback(() => {
+                        // Reset counter for next cycle
+                        this.physicsStepCounter = 0;
+                        // Continue with next step
+                        this.scheduleContinuousStep();
+                    });
+                } else {
+                    // Fallback - just schedule next step
                     this.scheduleContinuousStep();
-                });
+                }
             } else {
-                // Fallback - just schedule next step
-                this.scheduleContinuousStep();
+                // Just run physics without recalculating acuteness
+                console.log(`Physics step ${this.physicsStepCounter}/${this.config.physicsStepsPerAnalysis}`);
+                
+                if (this.continuousCallback) {
+                    // Run physics step without analysis
+                    this.continuousCallback(() => {
+                        this.scheduleContinuousStep();
+                    }, true); // true = skip analysis
+                } else {
+                    this.scheduleContinuousStep();
+                }
             }
         } catch (error) {
             console.error('Error in continuous step:', error);
@@ -423,16 +451,33 @@ export class PhysicsGrowthSystem {
     /**
      * Perform continuous step with updated analysis results
      */
-    performContinuousStep(points, computation, analysisResults) {
+    performContinuousStep(points, computation, analysisResults, skipAnalysis = false) {
         if (!this.continuousMode) return points;
         
-        // Apply one step of growth
-        const result = this.applyGrowth(points, computation, analysisResults);
+        let result;
         
-        // Update stored points for next iteration
-        this.continuousPoints = result;
+        if (!skipAnalysis && analysisResults) {
+            // New analysis available - calculate and store growth signals
+            this.currentGrowthSignals = this.calculateGrowthSignals(analysisResults.cellScores);
+            this.applyGrowthSignals(this.currentGrowthSignals);
+            this.physicsStepCounter = 0;
+        }
         
-        return result;
+        // Always run physics step with current growth signals
+        if (this.currentGrowthSignals) {
+            result = this.balanceForces(points, computation);
+            this.updateStats(result, this.currentGrowthSignals);
+            this.physicsStepCounter++;
+            
+            // Check if we've done enough physics steps
+            if (this.physicsStepCounter >= this.config.physicsStepsPerAnalysis) {
+                this.physicsStepCounter = 0; // Reset for next cycle
+            }
+            
+            return result.updatedPoints;
+        }
+        
+        return points;
     }
     
     /**

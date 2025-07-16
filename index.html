@@ -382,6 +382,13 @@
                     </div>
                 </div>
                 <div class="control-row">
+                    <div class="control-group" style="width: 100%;">
+                        <label style="width: 80px;">Phys/Anal:</label>
+                        <input type="range" id="physicsStepsPerAnalysis" min="1" max="50" step="1" value="10" class="slider" style="flex: 1;">
+                        <span id="physicsStepsPerAnalysisValue" style="width: 30px; text-align: right;">10</span>
+                    </div>
+                </div>
+                <div class="control-row">
                     <div class="control-group">
                         <label>Step Mode:</label>
                         <select id="stepMode" style="width: 120px;">
@@ -2143,6 +2150,14 @@
                 }
             });
             
+            document.getElementById('physicsStepsPerAnalysis').addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                document.getElementById('physicsStepsPerAnalysisValue').textContent = value;
+                if (physicsGrowthSystem) {
+                    physicsGrowthSystem.updateConfig({ physicsStepsPerAnalysis: value });
+                }
+            });
+            
             document.getElementById('stepMode').addEventListener('change', (e) => {
                 if (physicsGrowthSystem) {
                     // Stop continuous mode if switching away from it
@@ -2182,10 +2197,22 @@
                         stepButton.textContent = 'Start';
                     } else {
                         // Start continuous mode
-                        const continuousCallback = (onComplete) => {
-                            // Perform one step of growth
-                            const newPoints = physicsGrowthSystem.performContinuousStep(currentPoints, computation, analysisResults);
-                            currentPoints = newPoints;
+                        const continuousCallback = (onComplete, skipAnalysis = false) => {
+                            if (!skipAnalysis) {
+                                // Full analysis step - recompute everything
+                                const newPoints = physicsGrowthSystem.performContinuousStep(currentPoints, computation, analysisResults, false);
+                                currentPoints = newPoints;
+                                
+                                // Recompute full Delaunay/Voronoi for new analysis
+                                computeDelaunayVoronoi();
+                            } else {
+                                // Physics-only step - just update positions
+                                const newPoints = physicsGrowthSystem.performContinuousStep(currentPoints, computation, analysisResults, true);
+                                currentPoints = newPoints;
+                                
+                                // Just update vertex positions without full recomputation
+                                drawVertices(computation);
+                            }
                             
                             // Update statistics
                             const stats = physicsGrowthSystem.getStats();
@@ -2193,9 +2220,6 @@
                                 `Grow: ${stats.growingPoints} | Shrink: ${stats.shrinkingPoints} | Avg Δ: ${stats.averageDisplacement.toFixed(4)} | Max Δ: ${stats.maxDisplacement.toFixed(4)}`;
                             document.getElementById('physicsStats').textContent = 
                                 `Physics: ${stats.physicsSteps} steps | Equilibrium: ${stats.equilibriumReached ? 'Yes' : 'No'}`;
-                            
-                            // Recompute visualization
-                            computeDelaunayVoronoi();
                             
                             // Call completion callback
                             if (onComplete) onComplete();
