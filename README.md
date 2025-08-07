@@ -5,6 +5,10 @@
 An advanced 3D computational geometry visualization tool with **physics-based cell dynamics**, built upon the foundation of [Geogram-Three.js](https://github.com/VirtualOrganics/Geogram-Three.js). This project combines computational geometry, acuteness detection, and realistic physics simulation for dynamic cell expansion/contraction.
 
 <p align="center">
+  <img src="docs/Fabric_of_Space_10.png" alt="Fabric-of-Space Demo" width="70%">
+</p>
+
+<p align="center">
   <img src="docs/Fabric_of_Space_9.png" alt="Fabric-of-Space Demo" width="70%">
 </p>
 
